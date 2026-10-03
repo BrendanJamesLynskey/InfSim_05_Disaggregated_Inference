@@ -1069,8 +1069,11 @@
     function derive(m) {
         const hd = m.d / m.h, kv = m.kvh * hd;
         const ppl = 2 * m.d * m.d + 2 * m.d * kv + 3 * m.d * m.ff;
+        // weightBytes: resident (both vocab tables); weightStream: read by every step (layers +
+        // LM head); embRow: one embedding row, read per token looked up (corrected 2026-10-03)
         return { ...m, params: m.L * ppl + 2 * m.V * m.d, matmul: m.L * ppl + m.V * m.d,
-                 weightBytes: 2 * (m.L * ppl + 2 * m.V * m.d), kvTok: 2 * m.L * kv * 2 };
+                 weightBytes: 2 * (m.L * ppl + 2 * m.V * m.d), weightStream: 2 * (m.L * ppl + m.V * m.d),
+                 embRow: 2 * m.d, kvTok: 2 * m.L * kv * 2 };
     }
 
     const cbrt = x => Math.sign(x) * Math.pow(Math.abs(x), 1 / 3);
@@ -1108,12 +1111,14 @@
             prefill(lens) {
                 let tok = 0, fl = 0;
                 for (const s of lens) { tok += s; fl += 2 * model.L * model.d * s * (s + 1); }
-                return t(2 * model.matmul * tok + fl, model.weightBytes + tok * model.kvTok);
+                return t(2 * model.matmul * tok + fl, model.weightStream + tok * model.embRow + tok * model.kvTok);
             },
             decode(ctx) {
                 let c = 0; for (const x of ctx) c += x;
                 const b = ctx.length;
-                return t(2 * model.matmul * b + 4 * model.L * model.d * c, model.weightBytes + (c + b) * model.kvTok);
+                // each new token attends to its context and to itself: c + b positions
+                return t(2 * model.matmul * b + 4 * model.L * model.d * (c + b),
+                         model.weightStream + b * model.embRow + (c + b) * model.kvTok);
             },
         };
     }
@@ -1284,13 +1289,15 @@
     }
 
     // ── metrics (mirror of metrics.py) ─────────────────────────────────
-    function percentile(xs, p) {
-        if (!xs.length) return NaN;
-        const s = Float64Array.from(xs).sort(), k = (s.length - 1) * p / 100, lo = Math.floor(k), hi = Math.ceil(k);
+    function pctSorted(s, p) {
+        if (!s.length) return NaN;
+        const k = (s.length - 1) * p / 100, lo = Math.floor(k), hi = Math.ceil(k);
         return s[lo] + (s[hi] - s[lo]) * (k - lo);
     }
+    const percentile = (xs, p) => pctSorted(Float64Array.from(xs).sort(), p);
     const mean = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN;
-    const dist = xs => ({ mean: mean(xs), p50: percentile(xs, 50), p90: percentile(xs, 90), p99: percentile(xs, 99) });
+    const dist = xs => { const s = Float64Array.from(xs).sort();     // sort once for all three
+                         return { mean: mean(xs), p50: pctSorted(s, 50), p90: pctSorted(s, 90), p99: pctSorted(s, 99) }; };
     function stages(r) {
         const hand = r.kvReady !== null ? r.kvReady : r.firstToken;
         const s = { prefill_queue: r.prefillStart - r.arrival, prefill: r.firstToken - r.prefillStart,
@@ -1511,15 +1518,19 @@
     <div class="table-wrap">
     <table>
         <tr><th>Offered load (req/s)</th><th>Colocated TPOT p99</th><th>Colocated SLO met</th><th>Disagg 1P1D TPOT p99</th><th>Disagg 1P1D TTFT p99</th><th>Disagg 1P1D SLO met</th></tr>
-        <tr><td>2</td><td>19.7 ms</td><td>100%</td><td>14.7 ms</td><td>640 ms</td><td>100%</td></tr>
-        <tr><td>4</td><td>27.6 ms</td><td>97.8%</td><td>15.3 ms</td><td>854 ms</td><td>99.7%</td></tr>
-        <tr><td>5</td><td>29.6 ms</td><td>88.8%</td><td>15.7 ms</td><td>1,025 ms</td><td>98.5%</td></tr>
-        <tr><td>6</td><td>35.8 ms</td><td>62.8%</td><td>16.0 ms</td><td>1,339 ms</td><td>89.9%</td></tr>
-        <tr><td>8</td><td>47.5 ms</td><td>12.9%</td><td>16.4 ms</td><td>6,085 ms</td><td>21.0%</td></tr>
+        <tr><td>2</td><td>19.3 ms</td><td>100%</td><td>14.5 ms</td><td>640 ms</td><td>100%</td></tr>
+        <tr><td>4</td><td>25.9 ms</td><td>97.8%</td><td>15.2 ms</td><td>854 ms</td><td>99.7%</td></tr>
+        <tr><td>5</td><td>29.1 ms</td><td>89.7%</td><td>15.5 ms</td><td>1,025 ms</td><td>98.5%</td></tr>
+        <tr><td>6</td><td>34.8 ms</td><td>64.7%</td><td>15.8 ms</td><td>1,339 ms</td><td>89.9%</td></tr>
+        <tr><td>8</td><td>46.8 ms</td><td>14.0%</td><td>16.2 ms</td><td>6,085 ms</td><td>21.0%</td></tr>
     </table>
     </div>
-    <p>The same runs report energy: colocated uses 3.09 J per output token at 2,987 W; disaggregated 2.77 J at 2,687 W, because decode steps never idle behind prefills. Deck 07 builds on this.</p>
+    <p>The same runs report energy: colocated uses 3.09 J per output token at 2,993 W; disaggregated 2.77 J at 2,687 W, because decode steps never idle behind prefills. Deck 07 builds on this.</p>
     <p>With two prefill instances (2P1D, three instances in total) the disaggregated system meets both SLOs for 100% of requests up to 10 req/s with TPOT p99 of 17 ms. At 4 req/s the decode instance runs at a mean batch of about 14 with an MBU of about 77%: memory-bound, as deck 03 predicted.</p>
+    <div class="callout">
+        <div class="callout-label">Cost model corrected, 2026-10-03</div>
+        <p>Decode steps had been charged the whole input-embedding table and had left out each new token's attention to itself (found by tracing the real model, <a href="https://brendanjameslynskey.github.io/SimEng_10_PyTorch_ONNX_Frontends/#slide-09">Toolkit deck 10</a>). This table and the live simulator above use the corrected model. Decode steps got 1&ndash;6% shorter: colocated TPOT p99 at 4 req/s fell from 27.6 to 25.9 ms, and no conclusion on this slide changed. Every figure is in <a href="https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim/blob/main/examples/results.md">examples/results.md</a>, with before and after.</p>
+    </div>
     <div class="callout">
         <div class="callout-label">Reading the result like an architect</div>
         <p>Disaggregation does not make anything faster; it makes the two bottlenecks <em>separable</em>. TPOT becomes a function of the decode pool alone and TTFT of the prefill pool alone, so each can be provisioned against its own SLO. The simulator turns that qualitative claim into the numbers needed to size a deployment.</p>
@@ -1541,7 +1552,7 @@
         <tr><td><code>sim.py: FastDecodeInstance</code></td><td>The exact accelerated decode path (incremental state, lazy bookkeeping, macro-steps); deck 08</td></tr>
         <tr><td><code>search.py</code></td><td>Analytic capacity bounds, parallel sweeps, bisection for the maximum sustainable load</td></tr>
         <tr><td><code>web/sim_engine.js</code></td><td>The JavaScript port that runs on this page</td></tr>
-        <tr><td><code>tests/</code></td><td>32 tests: cost-model units, invariants, the M/D/1 analytic check, behaviour, property-based (Hypothesis), fast path against baseline, and this page's JavaScript against Python</td></tr>
+        <tr><td><code>tests/</code></td><td>36 tests: cost-model units (pinned against an operator trace of the real model since the 2026-10-03 correction), invariants, the M/D/1 analytic check, behaviour, property-based (Hypothesis), fast path against baseline, and this page's JavaScript against Python</td></tr>
     </table>
     </div>
     <div class="code-block">
