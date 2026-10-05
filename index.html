@@ -836,11 +836,12 @@
         <li><a href="#slide-08">Results from the Python CLI</a></li>
         <li><a href="#slide-09">Reading the Code</a></li>
         <li><a href="#slide-10">Limitations and Extensions</a></li>
-        <li><a href="#slide-11">What to Take Away</a></li>
+        <li><a href="#slide-11">Asymmetric Models: Encoder-Only Prefill</a></li>
+        <li><a href="#slide-12">What to Take Away</a></li>
     </ul>
     <div class="concepts">
         <p><strong>Concepts used here, and where they are explained.</strong> Each links to its <a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#glossary">series glossary</a> entry: a short explanation, then links to the slides that explain it in depth, in this series, the Local LLM Hosting and Key Publications decks, or the FHE Accelerator Simulators series.</p>
-        <div class="chips"><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-prefill" title="Prefill processes the whole prompt in one pass (matrix-matrix, compute-bound) and produces the first token. Decode then generates one token per sequence per step (matrix-vector, memory-bound). They need different hardware balances.">Prefill and decode</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-interference" title="On a colocated server a waiting prefill runs before the next decode step, so every sequence mid-generation stalls for the whole prefill: mean TPOT moves a little, p99 inter-token latency jumps about tenfold.">Prefill&ndash;decode interference</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-disagg" title="Running prefill and decode on separate machine pools (Splitwise, DistServe, Mooncake, NVIDIA Dynamo), so each phase is provisioned and power-managed for its own SLO. The cost is moving the KV cache.">Disaggregated (prefill/decode) serving</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-kvtransfer" title="Bytes = prompt tokens × KV per token (671 MB for a 2k-token Llama-3-70B prompt): 1.5 ms on NVLink, 13 ms on InfiniBand NDR, 215 ms on 25 GbE. The link and its queue can become the hot-spot.">KV-cache transfer</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-kvcache" title="The stored keys and values of every token of every live sequence, so attention need not recompute them. Its size (320 KiB per token for Llama-3-70B) limits batch size and is what disaggregation must move.">KV cache</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-batching" title="Re-forming the batch at every decode iteration: finished sequences leave and new ones join, so the GPU stays full. The scheduler loop at the heart of every serving engine and serving simulator.">Continuous batching</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-ttft" title="Time to first token (prefill queueing and compute); time per output token after the first (DistServe&#x27;s definition); and the gap between consecutive tokens, whose tail shows stalls the mean hides.">TTFT, TPOT and inter-token latency</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-goodput" title="The rate of requests that meet every SLO (for example TTFT ≤ 1 s and TPOT ≤ 25 ms), rather than raw throughput. The metric DistServe optimises and the simulator reports.">Goodput and SLO attainment</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-percentiles" title="Report p50, p90 and p99, not means, and plot the fraction of samples slower than x on log-log axes, where tails show. Say which population (all tokens or per request), and use streaming sketches when samples are many.">Percentiles and tail-latency CCDFs</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-mfu" title="Busy fraction says how often a resource works; model FLOPs and bandwidth utilisation say how much of its capability it uses. A continuous-batching decode engine is 100% busy at 4% MFU and about 77% MBU.">Utilisation, MFU and MBU</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-hotspot" title="Finding where speeding things up would help most. A stage breakdown that sums exactly to each request&#x27;s latency, the largest waiting stage mapped to the resource that owns it, confirmed by what-if sensitivity runs.">Hot-spot attribution</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-crn" title="Feeding two designs the same random request stream, so noise cancels in their difference: a much narrower confidence interval on &quot;which is better, and by how much&quot; for the same number of runs.">Common random numbers</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-powermodel" title="Static watts × time, plus pJ per FLOP, per HBM byte and per link bit, applied to the counts the roofline already has. Coefficients are illustrative and calibrated by regressing measured power on FLOP and byte rates.">The simulator's power model</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-dvfs" title="Lowering clock and voltage to cut power. A memory-bound step can slow its compute clock at no time cost; a power cap makes some steps power-bound, a third roof beside compute and memory.">DVFS and power caps (the third roof)</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-differential" title="Requiring two independent implementations to agree exactly on the same input: here the fast path against the baseline, and the browser JavaScript against the Python simulator.">Differential testing</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-simpy" title="A small, pure-Python DES library: Environment, processes, timeouts, events, Resource, Container, Store and interrupts. It has no built-in statistics or tracing; the probes are yours to design.">SimPy</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-perfetto" title="A JSON timeline format (complete slices, counters, metadata) that Perfetto and chrome://tracing display. The simulator, ONNX Runtime&#x27;s profiler and RTL testbenches can all emit it, so timelines can be compared side by side.">Chrome trace events and Perfetto</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-queueing" title="Closed-form results that a simulator&#x27;s engine must reproduce: M/M/1 mean time in system 1/(μ−λ); M/D/1 mean wait λS²/(2(1−ρ)) (Pollaczek–Khinchine). The KV link is tested this way.">Queueing theory checks (M/M/1, M/D/1)</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-roofline" title="Attainable performance is the lower of peak compute and bandwidth × arithmetic intensity (FLOPs per byte). The ridge point is the intensity at which both limits meet; below it a kernel is memory-bound.">Roofline, arithmetic intensity and ridge point</a></div>
+        <div class="chips"><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-prefill" title="Prefill processes the whole prompt in one pass (matrix-matrix, compute-bound) and produces the first token. Decode then generates one token per sequence per step (matrix-vector, memory-bound). They need different hardware balances.">Prefill and decode</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-interference" title="On a colocated server a waiting prefill runs before the next decode step, so every sequence mid-generation stalls for the whole prefill: mean TPOT moves a little, p99 inter-token latency jumps about tenfold.">Prefill&ndash;decode interference</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-disagg" title="Running prefill and decode on separate machine pools (Splitwise, DistServe, Mooncake, NVIDIA Dynamo), so each phase is provisioned and power-managed for its own SLO. The cost is moving the KV cache.">Disaggregated (prefill/decode) serving</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-kvtransfer" title="Bytes = prompt tokens × KV per token (671 MB for a 2k-token Llama-3-70B prompt): 1.5 ms on NVLink, 13 ms on InfiniBand NDR, 215 ms on 25 GbE. The link and its queue can become the hot-spot.">KV-cache transfer</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-ced" title="A model whose prefill runs only part of the network: in DeepSeek-V4.1-Flash&#x27;s Causal Encoder-Decoder the bottom half of the layers is a causal encoder and every decoder layer projects its KV from the last encoder state, so a prompt token activates 8B parameters and a generated token 16B. Prefill and decode pools then run different amounts of the model, which changes how they are sized.">Encoder-only prefill (causal encoder-decoder)</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-kvcache" title="The stored keys and values of every token of every live sequence, so attention need not recompute them. Its size (320 KiB per token for Llama-3-70B) limits batch size and is what disaggregation must move.">KV cache</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-batching" title="Re-forming the batch at every decode iteration: finished sequences leave and new ones join, so the GPU stays full. The scheduler loop at the heart of every serving engine and serving simulator.">Continuous batching</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-ttft" title="Time to first token (prefill queueing and compute); time per output token after the first (DistServe&#x27;s definition); and the gap between consecutive tokens, whose tail shows stalls the mean hides.">TTFT, TPOT and inter-token latency</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-goodput" title="The rate of requests that meet every SLO (for example TTFT ≤ 1 s and TPOT ≤ 25 ms), rather than raw throughput. The metric DistServe optimises and the simulator reports.">Goodput and SLO attainment</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-percentiles" title="Report p50, p90 and p99, not means, and plot the fraction of samples slower than x on log-log axes, where tails show. Say which population (all tokens or per request), and use streaming sketches when samples are many.">Percentiles and tail-latency CCDFs</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-mfu" title="Busy fraction says how often a resource works; model FLOPs and bandwidth utilisation say how much of its capability it uses. A continuous-batching decode engine is 100% busy at 4% MFU and about 77% MBU.">Utilisation, MFU and MBU</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-hotspot" title="Finding where speeding things up would help most. A stage breakdown that sums exactly to each request&#x27;s latency, the largest waiting stage mapped to the resource that owns it, confirmed by what-if sensitivity runs.">Hot-spot attribution</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-crn" title="Feeding two designs the same random request stream, so noise cancels in their difference: a much narrower confidence interval on &quot;which is better, and by how much&quot; for the same number of runs.">Common random numbers</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-powermodel" title="Static watts × time, plus pJ per FLOP, per HBM byte and per link bit, applied to the counts the roofline already has. Coefficients are illustrative and calibrated by regressing measured power on FLOP and byte rates.">The simulator's power model</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-dvfs" title="Lowering clock and voltage to cut power. A memory-bound step can slow its compute clock at no time cost; a power cap makes some steps power-bound, a third roof beside compute and memory.">DVFS and power caps (the third roof)</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-differential" title="Requiring two independent implementations to agree exactly on the same input: here the fast path against the baseline, and the browser JavaScript against the Python simulator.">Differential testing</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-simpy" title="A small, pure-Python DES library: Environment, processes, timeouts, events, Resource, Container, Store and interrupts. It has no built-in statistics or tracing; the probes are yours to design.">SimPy</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-perfetto" title="A JSON timeline format (complete slices, counters, metadata) that Perfetto and chrome://tracing display. The simulator, ONNX Runtime&#x27;s profiler and RTL testbenches can all emit it, so timelines can be compared side by side.">Chrome trace events and Perfetto</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-queueing" title="Closed-form results that a simulator&#x27;s engine must reproduce: M/M/1 mean time in system 1/(μ−λ); M/D/1 mean wait λS²/(2(1−ρ)) (Pollaczek–Khinchine). The KV link is tested this way.">Queueing theory checks (M/M/1, M/D/1)</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/#g-roofline" title="Attainable performance is the lower of peak compute and bandwidth × arithmetic intensity (FLOPs per byte). The ridge point is the intensity at which both limits meet; below it a kernel is memory-bound.">Roofline, arithmetic intensity and ridge point</a></div>
     </div>
 </section>
 
@@ -1002,7 +1003,7 @@
 
     <div class="control-panel" id="ds-panel">
         <div class="sim-grid">
-            <div class="control-row"><label for="ds-model">Model</label><select id="ds-model"><option value="llama3-8b">Llama-3-8B</option><option value="llama3-70b" selected>Llama-3-70B</option></select></div>
+            <div class="control-row"><label for="ds-model">Model</label><select id="ds-model"><option value="llama3-8b">Llama-3-8B</option><option value="llama3-70b" selected>Llama-3-70B</option><option value="llama3-8b-ced">Llama-3-8B shape, CED 16+16</option><option value="llama3-70b-ced">Llama-3-70B shape, CED 40+40</option></select></div>
             <div class="control-row"><label for="ds-dev">Device</label><select id="ds-dev"><option value="h100" selected>H100-SXM</option><option value="a100">A100-SXM</option><option value="optical">Hypothetical optical MAC</option></select></div>
             <div class="control-row"><label for="ds-ndev">Devices / instance</label><input type="range" id="ds-ndev" min="1" max="8" value="4"><span class="val" id="ds-ndev-val">4</span></div>
             <div class="control-row"><label for="ds-mode">Mode</label><select id="ds-mode"><option value="disagg" selected>Disaggregated</option><option value="colocated">Colocated (P+D instances)</option></select></div>
@@ -1051,6 +1052,9 @@
 // 2026-10-04: heterogeneous pools, FFT-mixing models (Hyena, hybrid, block-circulant,
 // distilled decode), the optical transform engine, KV hand-off compression (in transit or
 // at the GPU) and the PPA functions, all bit-exact with the Python package (tested).
+// 2026-10-05: the Causal Encoder-Decoder (CED) option of DeepSeek-V4.1-Flash (arXiv:2609.19969):
+// cedE encoder layers, a cedW-token replay through the decoder on prefill or (SGLang RFC #39963)
+// as the decode instance's first step. Off unless a model or cfg turns it on (tested bit-exact).
 (function (root) {
     // mixer: 'attention' | 'hyena' | 'hybrid'; see hardware.ModelSpec for the fields
     const MODELS = {
@@ -1064,6 +1068,9 @@
                               mixer: 'hybrid' },
         'llama3-8b-hyena-circ': { name: 'Llama-3-8B-shape Hyena-2 + block-circulant 256', L: 32, d: 4096, h: 32, kvh: 8,
                                   ff: 14336, V: 128256, mixer: 'hyena', circ: 256 },
+        // CED proxies: half encoder, half decoder (DeepSeek-V4.1-Flash splits 40 layers 20/20); illustrative
+        'llama3-8b-ced':  { name: 'Llama-3-8B-shape CED 16+16',  L: 32, d: 4096, h: 32, kvh: 8, ff: 14336, V: 128256, cedE: 16 },
+        'llama3-70b-ced': { name: 'Llama-3-70B-shape CED 40+40', L: 80, d: 8192, h: 64, kvh: 8, ff: 28672, V: 128256, cedE: 40 },
     };
     const ENOB_REQUIRED = { bf16: 11, int8: 8, fp8: 7 };
     // Fourier-optical transform engine (illustrative; hardware.TransformEngine)
@@ -1115,7 +1122,13 @@
 
     function derive(m0) {
         const m = { mixer: 'attention', attnEvery: 4, order: 2, short: 3, circ: 0, decodeStyle: 'direct', ds: 16,
-                    actFormat: 'bf16', lmHead: 'all', ...m0 };
+                    actFormat: 'bf16', lmHead: 'all', cedE: 0, cedW: 128, cedOn: 'prefill', ...m0 };
+        if (m.cedE) {
+            if (m.mixer !== 'attention') throw new Error("ced_encoder_layers is modelled for mixer='attention' only");
+            if (!(m.cedE > 0 && m.cedE < m.L)) throw new Error('ced_encoder_layers must leave at least one decoder layer');
+            if (m.cedW < 1) throw new Error('ced_replay must be at least 1 token');
+            if (m.cedOn !== 'prefill' && m.cedOn !== 'decode') throw new Error(`unknown ced_replay_on ${m.cedOn}`);
+        }
         const hd = m.d / m.h, kv = m.kvh * hd;
         const ppl = 2 * m.d * m.d + 2 * m.d * kv + 3 * m.d * m.ff;
         const isAttn = i => m.mixer === 'attention' || (m.mixer === 'hybrid' && i % m.attnEvery === 0);
@@ -1131,10 +1144,15 @@
         if (m.mixer !== 'attention') { let per = N * d; if (k) for (const [r, c] of mats) per += Math.max(r, c); pairs = nHy * per; }
         // weightBytes: resident (both vocab tables); weightStream: read by every step (layers +
         // LM head); embRow: one embedding row, read per token looked up (corrected 2026-10-03)
-        const mm = { ...m, isAttn, nAttn, nHy, mats, layers, params: layers + 2 * m.V * m.d, matmul: layers + m.V * m.d,
+        const mm = { ...m, isAttn, nAttn, nHy, mats, layers, ppl, params: layers + 2 * m.V * m.d, matmul: layers + m.V * m.d,
                      weightBytes: 2 * (layers + 2 * m.V * m.d), weightStream: 2 * (layers + m.V * m.d),
                      embRow: 2 * m.d, kvTok, state, cacheUnit: kvTok ? kvTok : state, pairs,
                      transformer: m.mixer === 'attention' };
+        // CED: parameters a prompt token touches (encoder + the decoder's K/V projections), and what a
+        // prefill-only instance holds when the replay runs on decode (+ the input embedding)
+        mm.cedPrompt = m.cedE * ppl + (m.L - m.cedE) * 2 * m.d * kv;
+        mm.cedResident = mm.cedPrompt + m.V * m.d;
+        mm.cedAttn = (layers_, s, w) => 2 * layers_ * m.d * w * (2 * s - w + 1);
         mm.units = (p, o) => kvTok ? p + o : 1;
         mm.handoff = p => state ? state : p * kvTok;
         const dense = (r, c, tokens) => {
@@ -1220,7 +1238,9 @@
     const pjPair = eng => eng.fomDac * 2 ** eng.enob * 1e-3 + eng.fomAdc * 2 ** eng.enob * 1e-3;
 
     const cbrt = x => Math.sign(x) * Math.pow(Math.abs(x), 1 / 3);
-    function costModel(model, dev, n, overhead, powerCap, dvfs, sMin) {
+    function costModel(model, dev, n, overhead, powerCap, dvfs, sMin, prefillOnly) {
+        // CED with the replay on decode: a prefill-pool instance holds and runs the encoder only
+        const encoderOnly = !!prefillOnly && model.cedE > 0 && model.cedOn === 'decode';
         const Fr = dev.F * dev.fe * n, Br = dev.B * dev.be * n;
         const jF = dev.pjF * 1e-12, jB = dev.pjB * 1e-12, idleW = dev.idle * n;
         const eng = dev.transform || null;
@@ -1256,7 +1276,7 @@
             const r = raw(flops, bytes);
             return { flops, bytes, time: r.time + overhead, bound: r.bound, ec: r.ec, em: r.em, oj: 0, oflops: 0 };
         };
-        const free = dev.M * n * 0.9 - model.weightBytes;
+        const free = dev.M * n * 0.9 - (encoderOnly ? model.cedResident * 2 : model.weightBytes);
         const kvCap = free > 0 ? Math.floor(free / model.cacheUnit) : null;
         // the transform engine's integer counts: (passes, conversions, rewrites, optical seconds)
         const opticalTerms = (lens, tokens) => {
@@ -1265,11 +1285,42 @@
             const rewrites = q * eng.maskValues < vals ? q + 1 : q;
             return [k, conversions, rewrites, conversions / eng.sps + rewrites / eng.maskRate];
         };
+        // CED prefill: CostModel._prefill_ced (same integer FLOPs, same float order for bytes)
+        const cedPrefill = lens => {
+            const enc = model.cedE, dec = model.L - model.cedE;
+            let tok = 0; for (const s of lens) tok += s;
+            let flops = 2 * model.cedPrompt * tok;
+            let att = 0; for (const s of lens) att += 2 * enc * model.d * s * (s + 1);
+            flops += att;
+            if (encoderOnly) {
+                const nbytes = model.cedPrompt * 2 + tok * model.embRow;
+                return t(flops, nbytes + tok * model.kvTok);
+            }
+            let rt = 0, ra = 0;
+            for (const s of lens) { const w = Math.min(s, model.cedW); rt += w; ra += model.cedAttn(dec, s, w); }
+            flops += 2 * dec * model.ppl * rt;
+            flops += ra;
+            flops += 2 * model.V * model.d * (model.lmHead === 'all' ? rt : lens.length);
+            return t(flops, model.weightStream + tok * model.embRow + tok * model.kvTok);
+        };
         return {
-            idleW, optStaticW, kvCap, opticalTerms,
+            idleW, optStaticW, kvCap, opticalTerms, encoderOnly,
             fits: free > 0,
+            // CED, replay on decode: running rows decode while new rows replay w prompt tokens (CostModel.ced_step)
+            cedStep(ctx, b, replay) {
+                let rt = 0, ra = 0, rs = 0;
+                for (const [s, w] of replay) { rt += w; ra += model.cedAttn(model.L, s, w); rs += s; }
+                let flops = 2 * model.matmul * b + 4 * model.L * model.d * (ctx + b);
+                flops += 2 * model.layers * rt;
+                flops += 2 * model.V * model.d * (model.lmHead === 'all' ? rt : replay.length);
+                flops += ra;
+                let nbytes = model.weightStream + (b + rt) * model.embRow + (ctx + b) * model.kvTok;
+                nbytes += rs * model.kvTok;
+                return t(flops, nbytes);
+            },
             prefill(lens) {
                 let tok = 0, fl = 0;
+                if (model.cedE) return cedPrefill(lens);
                 if (!model.transformer) {
                     for (const s of lens) tok += s;
                     const o = model.prefillOps(lens);
@@ -1340,7 +1391,12 @@
 
     // ── engine ─────────────────────────────────────────────────────────
     function simulate(cfg, rows) {
-        const model = derive({ ...MODELS[cfg.model], ...(cfg.lmHead ? { lmHead: cfg.lmHead } : {}) });
+        const model = derive({ ...MODELS[cfg.model], ...(cfg.lmHead ? { lmHead: cfg.lmHead } : {}),
+                               ...(cfg.cedEncoderLayers != null ? { cedE: cfg.cedEncoderLayers } : {}),
+                               ...(cfg.cedReplay != null ? { cedW: cfg.cedReplay } : {}),
+                               ...(cfg.cedReplayOn ? { cedOn: cfg.cedReplayOn } : {}) });
+        const cedOnDecode = model.cedE > 0 && model.cedOn === 'decode';
+        if (cedOnDecode && cfg.mode !== 'disagg') throw new Error("ced_replay_on='decode' splits prefill across the two pools: mode='disagg' only");
         const link = { ...LINKS[cfg.link], ch: cfg.linkChannels || 1 };
         const capFor = role => (role === 'prefill' ? cfg.prefillPowerCap : role === 'decode' ? cfg.decodePowerCap : null) ?? cfg.powerCap ?? null;
         // heterogeneous pools: prefillDevice / decodeDevice (keys) default to cfg.device
@@ -1348,7 +1404,7 @@
             dev: deviceFor((role === 'prefill' ? cfg.prefillDevice : role === 'decode' ? cfg.decodeDevice : null) ?? cfg.device, cfg),
             n: (role === 'prefill' ? cfg.prefillDevicesPerInstance : role === 'decode' ? cfg.decodeDevicesPerInstance : null) ?? cfg.devicesPerInstance });
         const cmFor = role => { const p = poolOf(role);
-            const c = costModel(model, p.dev, p.n, cfg.stepOverhead ?? 0.5e-3, capFor(role), !!cfg.dvfs);
+            const c = costModel(model, p.dev, p.n, cfg.stepOverhead ?? 0.5e-3, capFor(role), !!cfg.dvfs, undefined, role === 'prefill');
             if (!c.fits) throw new Error(`${role} pool: ${model.name} does not fit on ${p.n}x ${p.dev.name}`);
             return { ...c, dev: p.dev, n: p.n }; };
         // KV hand-off compression: { preset, where, opsPerByte, pjBit, lat, nativeFft }
@@ -1387,7 +1443,7 @@
         };
 
         const reqs = rows.map(([a, p, o], i) => ({ rid: i, arrival: a, prompt: p, output: o,
-            prefillStart: null, firstToken: null, kvStart: null, kvReady: null, decodeStart: null,
+            prefillStart: null, firstToken: null, prefillDone: null, kvStart: null, kvReady: null, decodeStart: null,
             finish: null, tokensOut: 0, lastToken: null, itls: [] }));
         const samples = [];
 
@@ -1445,6 +1501,24 @@
             const ctx = inst.running.map(r => r.prompt + r.tokensOut);
             step(inst, inst.cm.decode(ctx), ctx.length, () => decodeDone(inst));
         }
+        // CED, replay on decode: new rows run their last w prompt tokens through the whole model in the
+        // same step as the running rows' decode, and emit their first token (sim.CedDecodeInstance)
+        function cedOnce(inst) {
+            let ctx = 0, b = 0; const replay = [];
+            for (const r of inst.running) {
+                if (r.tokensOut) { ctx += r.prompt + r.tokensOut; b++; }
+                else replay.push([r.prompt, Math.min(r.prompt, model.cedW)]);
+            }
+            step(inst, inst.cm.cedStep(ctx, b, replay), inst.running.length, () => {
+                const still = [];
+                for (const r of inst.running) {
+                    if (r.tokensOut) { r.itls.push(now - r.lastToken); r.tokensOut++; r.lastToken = now; }
+                    else firstToken(r);
+                    if (r.tokensOut >= r.output) { inst.kvUsed -= kvNeed(r); finish(r); } else still.push(r);
+                }
+                inst.running = still;
+            });
+        }
         function loop(inst) {
             if (inst.active) return;
             if (inst.role === 'prefill') {
@@ -1456,18 +1530,20 @@
                 let cost = inst.cm.prefill(batch.map(r => r.prompt));
                 if (tr && tr.where === 'endpoint' && !(tr.preset.ratio === 1.0 && !tr.preset.ops)) {
                     let o = 0.0, nb = 0.0;
-                    for (const r of batch) { if (r.output <= 1) continue;
+                    for (const r of batch) { if (r.output <= 1 && !inst.cm.encoderOnly) continue;
                         const hb = model.handoff(r.prompt);
                         o += transitOps(tr, hb, r.prompt, 2.0, true); nb += hb + hb / tr.preset.ratio; }
                     if (nb) cost = inst.cm.compress(cost, o, nb);
                 }
                 step(inst, cost, batch.length, () => {
+                    // CED, replay on decode: the decode instance emits the first token; every request is handed off
+                    if (inst.cm.encoderOnly) { for (const r of batch) { r.prefillDone = now; kvRequest(r); } return; }
                     for (const r of batch) { firstToken(r); if (r.output <= 1) finish(r); else kvRequest(r); }
                 });
             } else if (inst.role === 'decode') {
                 while (inst.queue.length && inst.running.length < maxB && inst.kvUsed + kvNeed(inst.queue[0]) <= inst.cm.kvCap) {
                     const r = inst.queue.shift(); inst.kvUsed += kvNeed(r); r.decodeStart = now; inst.running.push(r); }
-                if (inst.running.length) decodeOnce(inst);
+                if (inst.running.length) { if (cedOnDecode) cedOnce(inst); else decodeOnce(inst); }
             } else {
                 const batch = []; let tok = 0;
                 while (inst.queue.length && inst.running.length + batch.length < maxB
@@ -1497,7 +1573,7 @@
                     nbytes * 8 * tr.pjBit * 1e-12, tOps > tWire];
         }
         function kvStart(r) {
-            ls.inUse++; r.kvStart = now; ls.wait += now - r.firstToken;
+            ls.inUse++; r.kvStart = now; ls.wait += now - (r.prefillDone ?? r.firstToken);
             const [t, nbytes, joules, transitJ, tb] = transfer(r);
             push(now + t, () => {
                 ls.inUse--; ls.busy += t; ls.bytes += nbytes; ls.transfers++; r.kvReady = now;
@@ -1539,9 +1615,10 @@
                          return { mean: mean(xs), p50: pctSorted(s, 50), p90: pctSorted(s, 90), p99: pctSorted(s, 99) }; };
     function stages(r) {
         const hand = r.kvReady !== null ? r.kvReady : r.firstToken;
-        const s = { prefill_queue: r.prefillStart - r.arrival, prefill: r.firstToken - r.prefillStart,
+        const pd = r.prefillDone ?? r.firstToken;       // CED, replay on decode: prefill ends before the first token
+        const s = { prefill_queue: r.prefillStart - r.arrival, prefill: pd - r.prefillStart,
                     kv_wait: 0, kv_transfer: 0, decode_queue: 0, decode: 0 };
-        if (r.kvStart !== null) { s.kv_wait = r.kvStart - r.firstToken; s.kv_transfer = r.kvReady - r.kvStart; }
+        if (r.kvStart !== null) { s.kv_wait = r.kvStart - pd; s.kv_transfer = r.kvReady - r.kvStart; }
         if (r.decodeStart !== null) { s.decode_queue = r.decodeStart - hand; s.decode = r.finish - r.decodeStart; }
         return s;
     }
@@ -1667,7 +1744,7 @@
         const ms = x => isFinite(x) ? (x * 1e3 < 10 ? (x * 1e3).toFixed(1) : Math.round(x * 1e3).toLocaleString()) + ' ms' : '—';
 
         function showMetrics(m, other){
-            const cell = (label, v, o) => `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${v}</div>${o !== undefined ? `<div style="font-family:var(--font-mono);font-size:0.72rem;color:${COL[other.mode]}">${other.mode}: ${o}</div>` : ''}</div>`;
+            const cell = (label, v, o) => `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${v}</div>${o != null ? `<div style="font-family:var(--font-mono);font-size:0.72rem;color:${COL[other.mode]}">${other.mode}: ${o}</div>` : ''}</div>`;
             const o = other || null;
             $('ds-metrics').innerHTML = [
                 cell('TTFT p50', ms(m.ttft.p50), o && ms(o.ttft.p50)), cell('TTFT p99', ms(m.ttft.p99), o && ms(o.ttft.p99)),
@@ -1824,7 +1901,7 @@
 <section class="slide" id="slide-09">
     <div class="slide-number">09</div>
     <h2>Reading the Code</h2>
-    <p>The Python package <a href="https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim">Disaggregated_Inference_Sim</a> is about 1,150 lines of Python, written to be read top to bottom.</p>
+    <p>The Python package <a href="https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim">Disaggregated_Inference_Sim</a> is about 2,400 lines of Python (it was 1,150 before the 2026-10-04 and 2026-10-05 extensions), written to be read top to bottom.</p>
     <div class="table-wrap">
     <table>
         <tr><th>Module</th><th>Role (deck 02's layers)</th></tr>
@@ -1836,7 +1913,7 @@
         <tr><td><code>sim.py: FastDecodeInstance</code></td><td>The exact accelerated decode path (incremental state, lazy bookkeeping, macro-steps); deck 08</td></tr>
         <tr><td><code>search.py</code></td><td>Analytic capacity bounds, parallel sweeps, bisection for the maximum sustainable load</td></tr>
         <tr><td><code>web/sim_engine.js</code></td><td>The JavaScript port that runs on this page</td></tr>
-        <tr><td><code>tests/</code></td><td>36 tests: cost-model units (pinned against an operator trace of the real model since the 2026-10-03 correction), invariants, the M/D/1 analytic check, behaviour, property-based (Hypothesis), fast path against baseline, and this page's JavaScript against Python</td></tr>
+        <tr><td><code>tests/</code></td><td>154 tests: cost-model units (pinned against an operator trace of the real model since the 2026-10-03 correction), invariants, the M/D/1 analytic check, behaviour, property-based (Hypothesis), fast path against baseline, and this page's JavaScript against Python</td></tr>
     </table>
     </div>
     <div class="code-block">
@@ -1858,6 +1935,7 @@ disagg-sim --trace run.json                           <span class="cm"># open in
         <li><strong>Tensor-parallel communication:</strong> add the all-reduce term from deck 03 and a scale-up link per instance.</li>
         <li><strong>Chunked prefill</strong> in colocated mode: a per-step token budget mixing prefill chunks with decodes. Is it as good as disaggregation?</li>
         <li><strong>Heterogeneous pools:</strong> H100 for prefill, A100 or an optical part for decode (Splitwise's proposal). Now built: <code>--prefill-device</code> and <code>--decode-device</code>, with an optical transform engine in the prefill pool, in <a href="https://brendanjameslynskey.github.io/FOptInf_03_Optical_Prefill_Pools/">Fourier Optics for Inference 03</a> (optical prefill pools, simulated).</li>
+        <li><strong>Asymmetric models:</strong> a model whose prefill runs only part of the network (a causal encoder-decoder). Now built: <code>--ced-encoder-layers</code>, <code>--ced-replay</code> and <code>--ced-replay-on</code>, on the next slide.</li>
         <li><strong>Pre-emption and paged KV:</strong> reserve KV incrementally rather than up front; evict or swap when full.</li>
         <li><strong>Prefix caching and a KV store</strong> (Mooncake): cache hits skip prefill and transfer.</li>
         <li><strong>Calibrated cost model:</strong> replace the roofline with a lookup table of measured or RTL-derived step times.</li>
@@ -1867,6 +1945,44 @@ disagg-sim --trace run.json                           <span class="cm"># open in
 
 <section class="slide" id="slide-11">
     <div class="slide-number">11</div>
+    <h2>Asymmetric Models: Encoder-Only Prefill</h2>
+    <p>Everything so far assumed prefill and decode run the same model. A 2026 design breaks that. DeepSeek-V4.1-Flash&rsquo;s <strong>Causal Encoder-Decoder</strong> (DeepSeek-AI, <a href="https://arxiv.org/abs/2609.19969">arXiv:2609.19969</a>, section 2.2) makes the bottom half of its 40 layers a causal encoder and projects every decoder layer&rsquo;s KV from the last encoder state, so a prompt token activates 8B parameters and a generated token 16B. The architecture is explained in <a href="https://brendanjameslynskey.github.io/Arch_06_Asymmetric_Causal_Encoder_Decoder/">Modern Architectures 06</a>; this slide is about what it does to the pools.</p>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Replay on prefill (the paper)</h4>
+            <ul>
+                <li>The prefill instance runs the encoder over the prompt, the decoder&rsquo;s KV projections, and the last 128 prompt tokens through the decoder (to rebuild its sliding-window state).</li>
+                <li>Both pools hold the whole model; the first token leaves the prefill pool as before.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Replay on decode (an SGLang RFC)</h4>
+            <ul>
+                <li><a href="https://github.com/sgl-project/sglang/issues/39963">sgl-project/sglang #39963</a> (open, September 2026): prefill workers hold only the encoder and the first decoder layer&rsquo;s KV projection, about half the weights.</li>
+                <li>The decode worker runs the final 128-token window through all layers as its first step, mixed into its decode batch, and emits the first token. TTFT now includes the hand-off.</li>
+            </ul>
+        </div>
+    </div>
+    <p>Both placements are in the simulator (<code>--model llama3-70b-ced</code>, <code>--ced-replay-on prefill|decode</code>; Python and the JavaScript above agree exactly). On a dense Llama-3-70B shape split 40 + 40 (illustrative), one 8,192-token prefill takes 288.3 ms instead of 564.3 ms. Highest request rate with 90% of requests inside both SLOs, best split of six 4&times;H100 instances:</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Prompt : output (mean)</th><th>Decoder-only</th><th>CED, replay on prefill</th><th>CED, replay on decode</th></tr>
+        <tr><td>2,048 : 512</td><td>25.72 req/s (4P2D)</td><td>39.20 (3P3D), 1.52&times;</td><td>41.07 (3P3D), 1.60&times;</td></tr>
+        <tr><td>4,096 : 256</td><td>13.10 (4P2D)</td><td>27.01 (4P2D), 2.06&times;</td><td>27.90 (4P2D), 2.13&times;</td></tr>
+        <tr><td>8,192 : 128</td><td>7.89 (5P1D)</td><td>13.23 (4P2D), 1.68&times;</td><td>13.23 (4P2D), 1.68&times;</td></tr>
+        <tr><td>16,384 : 64</td><td>3.81 (5P1D)</td><td>6.89 (5P1D), 1.81&times;</td><td>8.17 (5P1D), 2.14&times;</td></tr>
+    </table>
+    </div>
+    <ul>
+        <li><strong>The pool split moves.</strong> With half-price prefill, the best split shifts one instance towards decode at 2,048 : 512 and 8,192 : 128: provisioning ratios tuned for a decoder-only model are wrong for an asymmetric one.</li>
+        <li><strong>Gains above 2&times; are queueing,</strong> not FLOPs: the TTFT SLO is fixed (5&times; the decoder-only unloaded prefill), so halving service time cuts waiting by more than half.</li>
+        <li><strong>Smaller prefill instances fit.</strong> With the replay on decode a prefill instance holds 71.9 GB of weights instead of 141.1 GB; on two H100s that leaves KV room for 220,048 tokens instead of 8,835.</li>
+    </ul>
+    <p>Every figure is in sections 16&ndash;18 of <a href="https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim/blob/main/examples/results.md">examples/results.md</a>. The prompt:output ratios stand in for agent loops and are illustrative; the proxy has no MoE, sparse attention or prefix-cache hits.</p>
+</section>
+
+<section class="slide" id="slide-12">
+    <div class="slide-number">12</div>
     <h2>What to Take Away</h2>
     <ul>
         <li><strong>Colocated prefill stalls decode</strong>, destroying p99 inter-token latency under load.</li>
