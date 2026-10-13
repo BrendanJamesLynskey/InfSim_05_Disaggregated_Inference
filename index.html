@@ -2628,6 +2628,7 @@ disagg-sim --trace run.json                           <span class="cm"># open in
         <li><strong>A discrete-event simulator answers the sizing questions</strong> (ratio, link, batch, SLO) that analytical models cannot, because queueing and interference emerge only when you simulate them.</li>
         <li><strong>The browser port and the Python package agree exactly</strong>, an example of the cross-validation habit deck 06 formalises.</li>
         <li><strong>Whether to disaggregate depends on the workload:</strong> measured across five workloads, with every other lever, in <a href="https://inference-tradeoffs-explained.vercel.app/learn/04-disaggregation">Inference Trade-offs Explained</a> (disaggregation, <a href="https://inference-tradeoffs-explained.vercel.app/learn/06-kv-handoff-and-compression">the KV hand-off</a>).</li>
+        <li><strong>On a rack:</strong> one NVL72-sized rack split into prefill and decode pools, with the KV hand-off over NVLink or the network and a context-optimised part in either pool, run live on this series' simulator engine in <a href="https://ai-racks-explained.vercel.app/learn/08-disaggregated-inference">AI Racks Explained, chapter 8</a>.</li>
     </ul>
     <div class="callout">
         <div class="callout-label">Next</div>
